@@ -15,33 +15,32 @@ HEADERS = {
 connection = sqlite3.connect("data.db")
 
 
+class Event:
+    def scrap(self, url):
+        response = requests.get(url, headers=HEADERS)
+        source = response.text
+        return source
 
-def scrap(url):
-    response = requests.get(url, headers=HEADERS)
-    source = response.text
-    return source
+    def extract(self, source):
+        extractor = selectorlib.Extractor.from_yaml_file("extract.yaml")
+        value = extractor.extract(source)["tours"]
+        return value
 
+class Email:
+    def send_email(self, message):
+        host = "smtp.gmail.com"
+        port = 465
 
-def extract(source):
-    extractor = selectorlib.Extractor.from_yaml_file("extract.yaml")
-    value = extractor.extract(source)["tours"]
-    return value
+        username = "surajsinghrawat1999@gmail.com"
+        password = "cyyzliujkxajjtow"
 
+        receiver = "surajsinghrawat1999@gmail.com"
+        context = ssl.create_default_context()
 
-def send_email(message):
-    host = "smtp.gmail.com"
-    port = 465
-
-    username = "surajsinghrawat1999@gmail.com"
-    password = "cyyzliujkxajjtow"
-
-    receiver = "surajsinghrawat1999@gmail.com"
-    context = ssl.create_default_context()
-
-    with smtplib.SMTP_SSL(host, port, context=context) as server:
-        server.login(username, password)
-        server.sendmail(username, receiver, message)
-    print("Email was sent!")
+        with smtplib.SMTP_SSL(host, port, context=context) as server:
+            server.login(username, password)
+            server.sendmail(username, receiver, message)
+        print("Email was sent!")
 
 
 def store(extracted):
@@ -65,13 +64,15 @@ def read(extracted):
 
 if __name__ == "__main__":
     while True:
-        scraped = scrap(URL)
-        extracted = extract(scraped)
+        event = Event()
+        email = Email()
+        scraped = event.scrap(URL)
+        extracted = event.extract(scraped)
         print(extracted)
 
         if extracted != "No upcoming tours":
             row = read(extracted)
             if not row:
                 store(extracted)
-                send_email("Hey ! New Event Found.")
+                email.send_email("Hey ! New Event Found.")
         time.sleep(2)
